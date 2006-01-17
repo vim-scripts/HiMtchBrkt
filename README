@@ -1,0 +1,38 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=1435
+
+The HiMtchBrkt plugin attempts to highlight the matching bracket as you move your cursor in normal mode.  Bracket include
+
+    (){}[]  (actually the |'matchpairs'| option is used)
+
+and the matching one is highlighted when the cursor is moved on top of the bracket.  It does so by making a fair number of maps that intercept the requested motion, perform the requested motion, then also call the HiMatchBracket() function which does the work to highlight any matching bracket.  Basically it does a "%" to find the matching bracket (if any) and then constructs and executes an appropriate ":match" command.
+
+As of version 10, such overloaded motions include:
+
+    ,  E   F)  k      <down>         
+    ;  f(  F[  l      <end>          
+    $  f)  F]  w      <home>         
+    %  f[  F{  <c-b>  <left>         
+    0  f]  F}  <c-d>  <leftmouse>    
+    b  f{  h   <c-f>  <right>        
+    B  f}  j   <c-u>  <up>           
+    e  F(              
+
+Version 12 supports overloading of 0, too (if you have vim6.2 and patch 405 or later).
+
+Because vim is rich with commands that can move the cursor, the script also uses the CursorHold event (see |cursorhold| and |'updatetime'|) to highlight matching brackets after the cursor is left still for awhile.
+
+To start HiMtchBrkt mode you have several choices:
+
+    (put in your .vimrc)  let g:HiMtchBrktOn= 1    (vim will always start up in HiMtchBrkt mode)
+    command: :HMBstart
+    map:     \[i
+
+To stop HiMtchBrkt mode:
+
+    command: :HMBstop
+    map:     \[s
+
+When you start HiMtchBrkt, any user maps associated with HiMtchBrkt maps are saved; when you stop HiMtchBrkt, those maps are restored.
+
+(alpha/beta version available at http://mysite.verizon.net/astronaut/vim/index.html#HIMTCHBRKT)
+
