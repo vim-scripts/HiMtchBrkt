@@ -1,7 +1,7 @@
 " HiMtchBrkt : a rudimentary attempt to highlight matching brackets
 "  Author:  Charles E. Campbell, Jr.  <drNchipO@ScampbellPfamilyA.Mbiz>-NOSPAM
-"  Date:    Jan 17, 2006
-"  Version: 19
+"  Date:    Feb 09, 2006
+"  Version: 20
 "
 " A Vim v6.0 plugin with menus for gvim
 "
@@ -20,9 +20,12 @@
 if &cp || exists("g:loaded_HiMtchBrkt")
  finish
 endif
-let g:loaded_HiMtchBrkt = "v19"
+let g:loaded_HiMtchBrkt = "v20"
 let s:keepcpo           = &cpo
 set cpo&vim
+if exists("g:hicurline_ut") && !exists("g:HiMtchBrkt_ut")
+ let g:HiMtchBrkt_ut= g:hicurline_ut
+endif
 
 " ---------------------------------------------------------------------
 " Public Interface: {{{1
@@ -32,16 +35,18 @@ endif
 if !hasmapto('<Plug>HMBStop')
  map <unique> <Leader>[s	<Plug>HMBStop
 endif
-com! HMBstart	:set lz|call <SID>HMBStart()|set nolz
-com! HMBstop 	:set lz|call <SID>HMBStop()|set nolz
+com! HMBstart    :set lz|call <SID>HMBStart()|set nolz
+com! HMBstop     :set lz|call <SID>HMBStop()|set nolz
+com! -bang HMBsurround :let g:HiMtchBrkt_surround= <bang>1|call <SID>HiMatchBracket()
 
 " ---------------------------------------------------------------------
 " Global Maps: {{{1
 nmap <silent> <unique> <script> <Plug>HMBStart :set lz<CR>:call <SID>HMBStart()<CR>:set nolz<CR>
 nmap <silent> <unique> <script> <Plug>HMBStop  :set lz<CR>:call <SID>HMBStop()<CR>:set nolz<CR>
 
-" DrChip menu support:
-if has("gui_running") && has("menu")
+" ---------------------------------------------------------------------
+" DrChip Menu Support: {{{1
+if has("menu") && has("gui_running") && &go =~ 'm'
  if !exists("g:DrChipTopLvlMenu")
   let g:DrChipTopLvlMenu= "DrChip."
  endif
@@ -115,81 +120,81 @@ fun! <SID>HMBStart()
  
   " Install HiMtchBrkt maps
   if has("gui_running")
-   call HMBMapper("<down>"    , "<down>"    , "<down>")
-   call HMBMapper("<up>"      , "<up>"      , "<up>")
-   call HMBMapper("<right>"   , "<right>"   , "<right>")
-   call HMBMapper("<left>"    , "<left>"    , "<left>")
-   call HMBMapper("<home>"    , "<home>"    , "<home>")
-   call HMBMapper("<end>"     , "<end>"     , "<end>")
-   call HMBMapper("<space>"   , "<space>"   , "")
-   call HMBMapper("<PageUp>"  , "<PageUp>"  , "<PageUp>")
-   call HMBMapper("<PageDown>", "<PageDown>", "<PageDown>")
+   call s:HMBMapper("<down>"    , "<down>"    , "<down>")
+   call s:HMBMapper("<up>"      , "<up>"      , "<up>")
+   call s:HMBMapper("<right>"   , "<right>"   , "<right>")
+   call s:HMBMapper("<left>"    , "<left>"    , "<left>")
+   call s:HMBMapper("<home>"    , "<home>"    , "<home>")
+   call s:HMBMapper("<end>"     , "<end>"     , "<end>")
+   call s:HMBMapper("<space>"   , "<space>"   , "")
+   call s:HMBMapper("<PageUp>"  , "<PageUp>"  , "<PageUp>")
+   call s:HMBMapper("<PageDown>", "<PageDown>", "<PageDown>")
   else
-   call HMBMapper("<down>"    , "j"    , "<c-o>j"    )
-   call HMBMapper("<up>"      , "k"    , "<c-o>k"    )
-   call HMBMapper("<right>"   , "l"    , "<c-o>l"    )
-   call HMBMapper("<left>"    , "h"    , "<c-o>h"    )
-   call HMBMapper("<home>"    , "0"    , "<c-o>0"    )
-   call HMBMapper("<end>"     , "$"    , "<c-o>$"    )
-   call HMBMapper("<space>"   , "l"    , ""          )
-   call HMBMapper("<PageUp>"  , "<c-b>", "<c-o><c-b>")
-   call HMBMapper("<PageDown>", "<c-f>", "<c-o><c-f>")
+   call s:HMBMapper("<down>"    , "j"    , "<c-o>j"    )
+   call s:HMBMapper("<up>"      , "k"    , "<c-o>k"    )
+   call s:HMBMapper("<right>"   , "l"    , "<c-o>l"    )
+   call s:HMBMapper("<left>"    , "h"    , "<c-o>h"    )
+   call s:HMBMapper("<home>"    , "0"    , "<c-o>0"    )
+   call s:HMBMapper("<end>"     , "$"    , "<c-o>$"    )
+   call s:HMBMapper("<space>"   , "l"    , ""          )
+   call s:HMBMapper("<PageUp>"  , "<c-b>", "<c-o><c-b>")
+   call s:HMBMapper("<PageDown>", "<c-f>", "<c-o><c-f>")
   endif
   if has("gui_running") && has ("mouse")
-   call HMBMapper("<leftmouse>","<leftmouse>","<leftmouse>")
+   call s:HMBMapper("<leftmouse>","<leftmouse>","<leftmouse>")
   endif
   if v:version > 602 || v:version == 602 && has("patch405")
-   call HMBMapper('0'    , '0'    , '')
+   call s:HMBMapper('0'    , '0'    , '')
   endif
-  call HMBMapper('b'    , 'b'    , '')
-  call HMBMapper('B'    , 'B'    , '')
-  call HMBMapper('e'    , 'e'    , '')
-  call HMBMapper('E'    , 'E'    , '')
-  call HMBMapper('h'    , 'h'    , '')
-  call HMBMapper('j'    , 'j'    , '')
-  call HMBMapper('k'    , 'k'    , '')
-  call HMBMapper('l'    , 'l'    , '')
-  call HMBMapper('n'    , 'n'    , '')
-  call HMBMapper('N'    , 'N'    , '')
-  call HMBMapper('$'    , '$'    , '')
-  call HMBMapper('%'    , '%'    , '')
-  call HMBMapper('w'    , 'w'    , '')
-  call HMBMapper('W'    , 'W'    , '')
-  call HMBMapper("<c-f>", "<c-f>", "")
-  call HMBMapper("<c-b>", "<c-b>", "")
-  call HMBMapper("<c-d>", "<c-d>", "")
-  call HMBMapper("<c-u>", "<c-u>", "")
-  call HMBMapper('f('   , 'f('   , '')
-  call HMBMapper('f)'   , 'f)'   , '')
-  call HMBMapper('f{'   , 'f{'   , '')
-  call HMBMapper('f}'   , 'f}'   , '')
-  call HMBMapper('f['   , 'f['   , '')
-  call HMBMapper('f]'   , 'f]'   , '')
-  call HMBMapper('F('   , 'F('   , '')
-  call HMBMapper('F)'   , 'F)'   , '')
-  call HMBMapper('F{'   , 'F{'   , '')
-  call HMBMapper('F}'   , 'F}'   , '')
-  call HMBMapper('F['   , 'F['   , '')
-  call HMBMapper('F]'   , 'F]'   , '')
+  call s:HMBMapper('b'    , 'b'    , '')
+  call s:HMBMapper('B'    , 'B'    , '')
+  call s:HMBMapper('e'    , 'e'    , '')
+  call s:HMBMapper('E'    , 'E'    , '')
+  call s:HMBMapper('h'    , 'h'    , '')
+  call s:HMBMapper('j'    , 'j'    , '')
+  call s:HMBMapper('k'    , 'k'    , '')
+  call s:HMBMapper('l'    , 'l'    , '')
+  call s:HMBMapper('n'    , 'n'    , '')
+  call s:HMBMapper('N'    , 'N'    , '')
+  call s:HMBMapper('$'    , '$'    , '')
+  call s:HMBMapper('%'    , '%'    , '')
+  call s:HMBMapper('w'    , 'w'    , '')
+  call s:HMBMapper('W'    , 'W'    , '')
+  call s:HMBMapper("<c-f>", "<c-f>", "")
+  call s:HMBMapper("<c-b>", "<c-b>", "")
+  call s:HMBMapper("<c-d>", "<c-d>", "")
+  call s:HMBMapper("<c-u>", "<c-u>", "")
+  call s:HMBMapper('f('   , 'f('   , '')
+  call s:HMBMapper('f)'   , 'f)'   , '')
+  call s:HMBMapper('f{'   , 'f{'   , '')
+  call s:HMBMapper('f}'   , 'f}'   , '')
+  call s:HMBMapper('f['   , 'f['   , '')
+  call s:HMBMapper('f]'   , 'f]'   , '')
+  call s:HMBMapper('F('   , 'F('   , '')
+  call s:HMBMapper('F)'   , 'F)'   , '')
+  call s:HMBMapper('F{'   , 'F{'   , '')
+  call s:HMBMapper('F}'   , 'F}'   , '')
+  call s:HMBMapper('F['   , 'F['   , '')
+  call s:HMBMapper('F]'   , 'F]'   , '')
   if exists("mapleader")
    if mapleader != ';'
-   	call HMBMapper(';',';','')
+   	call s:HMBMapper(';',';','')
    endif
    if mapleader != ','
-   	call HMBMapper(',',',','')
+   	call s:HMBMapper(',',',','')
    endif
   else
-   	call HMBMapper(';',';','')
-   	call HMBMapper(',',',','')
+   	call s:HMBMapper(';',';','')
+   	call s:HMBMapper(',',',','')
   endif
  
   " use CursorHold event to do a belated highlighing of matching bracket
   " to handle motions not directly handled above
-  if !exists("g:himtchbrkt_nocursorhold")
+  if !exists("g:HiMtchBrkt_nocursorhold") && (!exists("g:HiMtchBrkt_ut") || g:HiMtchBrkt_ut != 0)
    " keep and set options
-   let g:himtchbrkt_utkeep= &ut
-   if exists("g:himtchbrkt_ut")
-   	let &ut= g:himtchbrkt_ut
+   let g:HiMtchBrkt_utkeep= &ut
+   if exists("g:HiMtchBrkt_ut")
+   	let &ut= g:HiMtchBrkt_ut
    else
    	" I'd like to set ut even faster, but unfortunately that clears
 	" status-line messages before people have a chance to read them
@@ -227,7 +232,7 @@ fun! <SID>HMBStop()
   match none
  
   " remove cursorhold event for highlighting matching bracket
-  if !exists("g:himtchbrkt_nocursorhold")
+  if !exists("g:HiMtchBrkt_nocursorhold")
    augroup HMBEvent
     au!
    augroup END
@@ -255,23 +260,31 @@ endfun
 " the matching bracket.
 fun! <SID>HiMatchBracket()
 "  call Dfunc("HiMatchBracket()")
+"  call Decho(((exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround)? "surround" : "normal")." mode")
 
   " save
   let regdq            = @"
   let regunnamed       = @@
   let sokeep           = &so
+  let sskeep           = &ss
+  let sisokeep         = &siso
   let solkeep          = &sol
   let t_vbkeep         = &t_vb
   let vbkeep           = &vb
   silent! let regpaste = @*
 
   " turn beep/visual flash off
-  set nosol vb t_vb= so=0
+  set nosol vb t_vb= so=0 siso=0 ss=0
 
+  " remove every other character from the mps option set
   let mps= substitute(&mps,'\(.\).','\1','g')
-  norm! vy
+
+  " grab a copy of the character under the cursor into @0
+  silent! norm! yl
   let swp= SaveWinPosn(0)
 
+  " if the character grabbed in @0 is in the mps option set, then highlight
+  " the matching character
 "  call Decho("HiMatchBracket: stridx(mps<".mps.">,@0<".@0.">)=".stridx(mps,@0))
   if stridx(mps,@0) != -1
    let curline  = line('.')
@@ -286,7 +299,31 @@ fun! <SID>HiMatchBracket()
    let mtchcol  = virtcol('.')
    call RestoreWinPosn(swp)
    exe 'match Search /\%'.mtchline.'l\%'.mtchcol.'v/'
-"   call Decho("cur[".curline.",".curcol."] hline=".hline." mtch[".mtchline.",".mtchcol."]")
+"   call Decho('exe match Search /\%'.mtchline.'l\%'.mtchcol.'v/')
+
+  " if g:HiMtchBrkt_surround exists and is true, then highlight the surrounding brackets
+  elseif exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround
+   let openers = '['.escape(substitute(&mps,':.,\=',"","g"),']').']'
+   let closers = '['.escape(substitute(&mps,',\=.:',"","g"),']').']'
+"   call Decho("openers".openers." closers".closers)
+   call searchpair(openers,"",closers)
+
+"   keepj norm! %
+   silent! norm! yl
+"   call Decho("surround: stridx(mps<".mps.">,@0<".@0.">)=".stridx(mps,@0))
+   if stridx(mps,@0) != -1
+    let mtchline1 = line('.')
+    let mtchcol1  = virtcol('.')
+    keepj norm! %
+    let mtchline2 = line('.')
+    let mtchcol2  = virtcol('.')
+    call RestoreWinPosn(swp)
+    exe 'match Search /\%'.mtchline1.'l\%'.mtchcol1.'v\|\%'.mtchline2.'l\%'.mtchcol2.'v/'
+"    call Decho('match Search /\%'.mtchline1.'l\%'.mtchcol1.'v\|\%'.mtchline2.'l\%'.mtchcol2.'v/')
+   else
+    match none
+   endif
+
   else
    match none
   endif
@@ -296,6 +333,8 @@ fun! <SID>HiMatchBracket()
   let @@         = regunnamed
   let &sol       = solkeep
   let &so        = sokeep
+  let &siso      = sisokeep
+  let &ss        = sskeep
   let &t_vb      = t_vbkeep
   let &vb        = vbkeep
   silent! let @* = regpaste
@@ -305,7 +344,7 @@ endfun
 
 " ---------------------------------------------------------------------
 " HMBMapper: {{{1
-fun! HMBMapper(lhs,nrhs,irhs)
+fun! s:HMBMapper(lhs,nrhs,irhs)
 "  call Dfunc("HMBMapper(.lhs<".a:lhs."> nrhs<".a:nrhs."> irhs<".a:irhs.">)")
 
   " overload normal mode mapping
@@ -327,14 +366,14 @@ fun! HMBMapper(lhs,nrhs,irhs)
 endfun
 
 " ---------------------------------------------------------------------
-"  Insure cecutil has been loaded: {{{1
-
+"  Auto Startup With HiMtchBrktOn: {{{1
 if exists("g:HiMtchBrktOn") && g:HiMtchBrktOn != 0
  if !exists("*SaveUserMaps")
   " due to loading order, <plugin/cecutil.vim> may not have loaded yet.
-  " attempt to force a load now.
+  " attempt to force a load now.  Ditto for matchit!
   silent! runtime plugin/cecutil.vim
  endif
+ silent! runtime plugin/matchit.vim
  silent HMBstart
 endif
 

@@ -1,8 +1,8 @@
-*himtchbrkt.txt*	The HiMtchBrkt Tool		Jan 12, 2006
+*himtchbrkt.txt*	The HiMtchBrkt Tool		Feb 09, 2006
 
 Author:  Charles E. Campbell, Jr.  <NdrOchip@ScampbellPfamily.AbizM>
 	  (remove NOSPAM from Campbell's email first)
-Copyright: (c) 2004-2005 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
+Copyright: (c) 2004-2006 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
            The VIM LICENSE applies to HiMtchBrkt.vim and HiMtchBrkt.txt
            (see |copyright|) except use "HiMtchBrkt" instead of "Vim"
 	   No warranty, express or implied.  Use At-Your-Own-Risk.
@@ -36,13 +36,10 @@ Copyright: (c) 2004-2005 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
     5. This step is only for those who wish to have HiMtchBrkt start up
        automatically:
 
-       a) if you want HiMtchBrkt to start up for all files: >
+       a) if you want HiMtchBrkt to start up for all files:
+          Put the following line in your <.vimrc> (or vimfiles, for Windows): >
 
-          mkdir after    (if after/ doesn't already exist)
-          cd after
-	  mkdir plugin   (if after/plugin/ doesn't already exist)
-	  cd plugin
-	  echo "HMBstart" > HiMtchBrkt.vim
+	  let g:HiMtchBrktOn= 1
 <
        b) if you want HiMtchBrkt to start up automatically but only for
           specific filetypes.  For example, assume such a filetype is
@@ -60,16 +57,18 @@ Copyright: (c) 2004-2005 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
 							*himtchbrkt-manual*
 	To Enable:
 
- /=============+============================================================\
- || Starting & |                                                           ||
- || Stopping   | Explanation                                               ||
- ++------------+-----------------------------------------------------------++
- || <Leader>[i | start HiMtchBrkt   (via a map)                            ||
- || <Leader>[s | stop  HiMtchBrkt   (via a map)                            ||
- ++------------+-----------------------------------------------------------++
- || :HMBstart  | start HiMtchBrkt   (via a command)                        ||
- || :HMBstop   | stop  HiMtchBrkt   (via a command)                        ||
- ++============+===========================================================++
+ /================+============================================================\
+ || Starting &    |                                                           ||
+ || Stopping      | Explanation                                               ||
+ ++---------------+-----------------------------------------------------------++
+ || <Leader>[i    | start HiMtchBrkt   (via a map)                            ||
+ || <Leader>[s    | stop  HiMtchBrkt   (via a map)                            ||
+ ++---------------+-----------------------------------------------------------++
+ || :HMBstart     | start HiMtchBrkt   (via a command)                        ||
+ || :HMBstop      | stop  HiMtchBrkt   (via a command)                        ||
+ || :HMBsurround  | enable HiMtchBrkt surrounding bracket mode                ||
+ || :HMBsurround! | disable HiMtchBrkt surrounding bracket mode               ||
+ ++===============+===========================================================++
 
  You may also choose from the DrChip.HiMtchBrkt menu items if you're running
  gvim.  Check on vim's help for mapleader |mapleader| to learn how to set
@@ -114,6 +113,8 @@ Copyright: (c) 2004-2005 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
 
 STARTING						*himtchbrkt-start*
     <Leader>[i
+    :HMBstart
+    let g:HiMtchBrktOn= 1   (in your .vimrc or vimfiles)
 
     Typically one puts <himtchbrkt.vim> into the .vim/plugin directory
     (vimfiles\plugin for MS) where it becomes always available.  It uses a
@@ -137,7 +138,7 @@ OPTIONS							*himtchbrkt-options*
 	If this option exists and is not zero (ie. set it in your
 	.vimrc file), then HiMtchBrkt will both load and start on.
 	
-    g:himtchbrkt_nocursorhold			*himtchbrkt-nocursorhold*
+    g:HiMtchBrkt_nocursorhold			*himtchbrkt-nocursorhold*
 
     	If g:himtchbrkt_nocursorhold exists, then the CursorHold event will
 	not be used to check on matching brackets:
@@ -153,7 +154,13 @@ OPTIONS							*himtchbrkt-options*
     	Unfortunately, when a CursorHold event occurs, any command-line
 	messages disappear.
 
-    g:himtchbrkt_ut					*himtchbrkt-ut*
+    g:HiMtchBrkt_surround			*himtchbrkt-surround*
+	When this variable exists and is true (ie. non-zero), then
+	HiMtchBrkt will highlight both brackets surrounding the cursor
+	position.  This variable is turned on and off by :HMBsurround
+	and :HMBsurround!, respectively.
+
+    g:HiMtchBrkt_ut					*himtchbrkt-ut*
 
 	This optional variable controls how long the period of activity
 	will be, in milliseconds (see |'ut'|).  By default HiMtchBrkt
@@ -197,6 +204,13 @@ HIGHLIGHTING MATCHING BRACKET OPTIONS			*himtchbrkt-option*
 5. HiMtchBrkt History					*himtchbrkt-history*
 
     (began this history rather late I'm afraid)
+    v20  01/19/06: * HMBMapper() now made script-local (s:HMBMapper())
+         01/20/06  * g:HiMtchBrktOn == 1 will auto-start HiMtchBrkt
+	 01/20/06  * g:HiMtchBrktOn variable for auto-startup installed
+	 01/23/06  * "norm! yl" used instead of "norm! vy" to grab a copy
+	             of the character under the cursor without clearing
+		     messages (with vim7.0aa snapshot#185)
+	 02/09/06  * HMBsurround implemented (surrounding brackets highlighted)
     v19  01/12/06: * will now append its maps to any pre-existing maps.  If
                      HMBstarted _after_ other plugins with maps have loaded,
 		     then HiMtchBrkt will work with them (in particular, if
@@ -251,4 +265,5 @@ HIGHLIGHTING MATCHING BRACKET OPTIONS			*himtchbrkt-option*
                    and g:DrChipTopLvlMenu
     v1   epoch
 
+=====================================================================
 vim:tw=78:ts=8:ft=help:sts=4
