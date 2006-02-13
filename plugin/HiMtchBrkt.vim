@@ -1,7 +1,8 @@
-" HiMtchBrkt : a rudimentary attempt to highlight matching brackets
+" HiMtchBrkt : highlights matching brackets and, optionally, containing
+"              brackets
 "  Author:  Charles E. Campbell, Jr.  <drNchipO@ScampbellPfamilyA.Mbiz>-NOSPAM
-"  Date:    Feb 09, 2006
-"  Version: 20
+"  Date:    Feb 13, 2006
+"  Version: 21
 "
 " A Vim v6.0 plugin with menus for gvim
 "
@@ -20,7 +21,7 @@
 if &cp || exists("g:loaded_HiMtchBrkt")
  finish
 endif
-let g:loaded_HiMtchBrkt = "v20"
+let g:loaded_HiMtchBrkt = "v21"
 let s:keepcpo           = &cpo
 set cpo&vim
 if exists("g:hicurline_ut") && !exists("g:HiMtchBrkt_ut")
@@ -35,9 +36,9 @@ endif
 if !hasmapto('<Plug>HMBStop')
  map <unique> <Leader>[s	<Plug>HMBStop
 endif
-com! HMBstart    :set lz|call <SID>HMBStart()|set nolz
-com! HMBstop     :set lz|call <SID>HMBStop()|set nolz
-com! -bang HMBsurround :let g:HiMtchBrkt_surround= <bang>1|call <SID>HiMatchBracket()
+com! HMBstart    :set lz|call s:HMBStart()|set nolz
+com! HMBstop     :set lz|call s:HMBStop()|set nolz
+com! -bang HMBsurround :set lz|call s:HMBSurround(<bang>1)|set nolz
 
 " ---------------------------------------------------------------------
 " Global Maps: {{{1
@@ -51,6 +52,7 @@ if has("menu") && has("gui_running") && &go =~ 'm'
   let g:DrChipTopLvlMenu= "DrChip."
  endif
  exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Start<tab><Leader>[i	<Leader>[i'
+ exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On<tab>:HMBsurround	:HMBsurround'
 endif
 
 " =====================================================================
@@ -72,145 +74,157 @@ fun! <SID>HMBStart()
   endif
   let g:dohimtchbrkt= 1
  
-  " Save Maps (if any)
-  call SaveUserMaps("n","",":F(","HiMtchBrkt")
-  call SaveUserMaps("n","",":F)","HiMtchBrkt")
-  call SaveUserMaps("n","",":F[","HiMtchBrkt")
-  call SaveUserMaps("n","",":F]","HiMtchBrkt")
-  call SaveUserMaps("n","",":F{","HiMtchBrkt")
-  call SaveUserMaps("n","",":F}","HiMtchBrkt")
-  call SaveUserMaps("n","",":f(","HiMtchBrkt")
-  call SaveUserMaps("n","",":f)","HiMtchBrkt")
-  call SaveUserMaps("n","",":f[","HiMtchBrkt")
-  call SaveUserMaps("n","",":f]","HiMtchBrkt")
-  call SaveUserMaps("n","",":f{","HiMtchBrkt")
-  call SaveUserMaps("n","",":f}","HiMtchBrkt")
-  call SaveUserMaps("n","","<c-b>","HiMtchBrkt")
-  call SaveUserMaps("n","","<c-d>","HiMtchBrkt")
-  call SaveUserMaps("n","","<c-f>","HiMtchBrkt")
-  call SaveUserMaps("n","","<c-u>","HiMtchBrkt")
-  call SaveUserMaps("n","","<down>","HiMtchBrkt")
-  call SaveUserMaps("n","","<PageDown>","HiMtchBrkt")
-  call SaveUserMaps("n","","<end>","HiMtchBrkt")
-  call SaveUserMaps("n","","<home>","HiMtchBrkt")
-  call SaveUserMaps("n","","<left>","HiMtchBrkt")
-  call SaveUserMaps("n","","<right>","HiMtchBrkt")
-  call SaveUserMaps("n","","<space>","HiMtchBrkt")
-  call SaveUserMaps("n","","<up>","HiMtchBrkt")
-  call SaveUserMaps("n","","<PageUp>","HiMtchBrkt")
-  call SaveUserMaps("n","","webWEBjklh$0%;,nN","HiMtchBrkt")
-  call SaveUserMaps("o","","<down>","HiMtchBrkt")
-  call SaveUserMaps("o","","<end>","HiMtchBrkt")
-  call SaveUserMaps("o","","<home>","HiMtchBrkt")
-  call SaveUserMaps("o","","<left>","HiMtchBrkt")
-  call SaveUserMaps("o","","<right>","HiMtchBrkt")
-  call SaveUserMaps("o","","<up>","HiMtchBrkt")
-  if has("gui_running") && has("mouse")
-   call SaveUserMaps("n","","<leftmouse>","HiMtchBrkt")
-   call SaveUserMaps("o","","<leftmouse>","HiMtchBrkt")
-  endif
-  if v:version > 602 || v:version == 602 && has("patch405")
-   call SaveUserMaps("n","","0","HiMtchBrkt")
-  endif
- 
   " indicate in HiMtchBrkt mode
   if &cmdheight >= 2
    echo "[HiMtchBrkt]"
   endif
  
-  " Install HiMtchBrkt maps
-  if has("gui_running")
-   call s:HMBMapper("<down>"    , "<down>"    , "<down>")
-   call s:HMBMapper("<up>"      , "<up>"      , "<up>")
-   call s:HMBMapper("<right>"   , "<right>"   , "<right>")
-   call s:HMBMapper("<left>"    , "<left>"    , "<left>")
-   call s:HMBMapper("<home>"    , "<home>"    , "<home>")
-   call s:HMBMapper("<end>"     , "<end>"     , "<end>")
-   call s:HMBMapper("<space>"   , "<space>"   , "")
-   call s:HMBMapper("<PageUp>"  , "<PageUp>"  , "<PageUp>")
-   call s:HMBMapper("<PageDown>", "<PageDown>", "<PageDown>")
+  if v:version >= 700
+   " assuming snapshot#195 or later
+   au CursorMoved,CursorMovedI * silent call s:HiMatchBracket()
   else
-   call s:HMBMapper("<down>"    , "j"    , "<c-o>j"    )
-   call s:HMBMapper("<up>"      , "k"    , "<c-o>k"    )
-   call s:HMBMapper("<right>"   , "l"    , "<c-o>l"    )
-   call s:HMBMapper("<left>"    , "h"    , "<c-o>h"    )
-   call s:HMBMapper("<home>"    , "0"    , "<c-o>0"    )
-   call s:HMBMapper("<end>"     , "$"    , "<c-o>$"    )
-   call s:HMBMapper("<space>"   , "l"    , ""          )
-   call s:HMBMapper("<PageUp>"  , "<c-b>", "<c-o><c-b>")
-   call s:HMBMapper("<PageDown>", "<c-f>", "<c-o><c-f>")
-  endif
-  if has("gui_running") && has ("mouse")
-   call s:HMBMapper("<leftmouse>","<leftmouse>","<leftmouse>")
-  endif
-  if v:version > 602 || v:version == 602 && has("patch405")
-   call s:HMBMapper('0'    , '0'    , '')
-  endif
-  call s:HMBMapper('b'    , 'b'    , '')
-  call s:HMBMapper('B'    , 'B'    , '')
-  call s:HMBMapper('e'    , 'e'    , '')
-  call s:HMBMapper('E'    , 'E'    , '')
-  call s:HMBMapper('h'    , 'h'    , '')
-  call s:HMBMapper('j'    , 'j'    , '')
-  call s:HMBMapper('k'    , 'k'    , '')
-  call s:HMBMapper('l'    , 'l'    , '')
-  call s:HMBMapper('n'    , 'n'    , '')
-  call s:HMBMapper('N'    , 'N'    , '')
-  call s:HMBMapper('$'    , '$'    , '')
-  call s:HMBMapper('%'    , '%'    , '')
-  call s:HMBMapper('w'    , 'w'    , '')
-  call s:HMBMapper('W'    , 'W'    , '')
-  call s:HMBMapper("<c-f>", "<c-f>", "")
-  call s:HMBMapper("<c-b>", "<c-b>", "")
-  call s:HMBMapper("<c-d>", "<c-d>", "")
-  call s:HMBMapper("<c-u>", "<c-u>", "")
-  call s:HMBMapper('f('   , 'f('   , '')
-  call s:HMBMapper('f)'   , 'f)'   , '')
-  call s:HMBMapper('f{'   , 'f{'   , '')
-  call s:HMBMapper('f}'   , 'f}'   , '')
-  call s:HMBMapper('f['   , 'f['   , '')
-  call s:HMBMapper('f]'   , 'f]'   , '')
-  call s:HMBMapper('F('   , 'F('   , '')
-  call s:HMBMapper('F)'   , 'F)'   , '')
-  call s:HMBMapper('F{'   , 'F{'   , '')
-  call s:HMBMapper('F}'   , 'F}'   , '')
-  call s:HMBMapper('F['   , 'F['   , '')
-  call s:HMBMapper('F]'   , 'F]'   , '')
-  if exists("mapleader")
-   if mapleader != ';'
-   	call s:HMBMapper(';',';','')
+   " Save Maps (if any)
+   call SaveUserMaps("n","",":F(","HiMtchBrkt")
+   call SaveUserMaps("n","",":F)","HiMtchBrkt")
+   call SaveUserMaps("n","",":F[","HiMtchBrkt")
+   call SaveUserMaps("n","",":F]","HiMtchBrkt")
+   call SaveUserMaps("n","",":F{","HiMtchBrkt")
+   call SaveUserMaps("n","",":F}","HiMtchBrkt")
+   call SaveUserMaps("n","",":f(","HiMtchBrkt")
+   call SaveUserMaps("n","",":f)","HiMtchBrkt")
+   call SaveUserMaps("n","",":f[","HiMtchBrkt")
+   call SaveUserMaps("n","",":f]","HiMtchBrkt")
+   call SaveUserMaps("n","",":f{","HiMtchBrkt")
+   call SaveUserMaps("n","",":f}","HiMtchBrkt")
+   call SaveUserMaps("n","","<c-b>","HiMtchBrkt")
+   call SaveUserMaps("n","","<c-d>","HiMtchBrkt")
+   call SaveUserMaps("n","","<c-f>","HiMtchBrkt")
+   call SaveUserMaps("n","","<c-u>","HiMtchBrkt")
+   call SaveUserMaps("n","","<down>","HiMtchBrkt")
+   call SaveUserMaps("n","","<PageDown>","HiMtchBrkt")
+   call SaveUserMaps("n","","<end>","HiMtchBrkt")
+   call SaveUserMaps("n","","<home>","HiMtchBrkt")
+   call SaveUserMaps("n","","<left>","HiMtchBrkt")
+   call SaveUserMaps("n","","<right>","HiMtchBrkt")
+   call SaveUserMaps("n","","<space>","HiMtchBrkt")
+   call SaveUserMaps("n","","<up>","HiMtchBrkt")
+   call SaveUserMaps("n","","<PageUp>","HiMtchBrkt")
+   call SaveUserMaps("n","","webWEBjklh$0%;,nN","HiMtchBrkt")
+   call SaveUserMaps("o","","<down>","HiMtchBrkt")
+   call SaveUserMaps("o","","<end>","HiMtchBrkt")
+   call SaveUserMaps("o","","<home>","HiMtchBrkt")
+   call SaveUserMaps("o","","<left>","HiMtchBrkt")
+   call SaveUserMaps("o","","<right>","HiMtchBrkt")
+   call SaveUserMaps("o","","<up>","HiMtchBrkt")
+   if has("gui_running") && has("mouse")
+    call SaveUserMaps("n","","<leftmouse>","HiMtchBrkt")
+    call SaveUserMaps("o","","<leftmouse>","HiMtchBrkt")
    endif
-   if mapleader != ','
-   	call s:HMBMapper(',',',','')
+   if v:version > 602 || v:version == 602 && has("patch405")
+    call SaveUserMaps("n","","0","HiMtchBrkt")
    endif
-  else
-   	call s:HMBMapper(';',';','')
-   	call s:HMBMapper(',',',','')
-  endif
- 
-  " use CursorHold event to do a belated highlighing of matching bracket
-  " to handle motions not directly handled above
-  if !exists("g:HiMtchBrkt_nocursorhold") && (!exists("g:HiMtchBrkt_ut") || g:HiMtchBrkt_ut != 0)
-   " keep and set options
-   let g:HiMtchBrkt_utkeep= &ut
-   if exists("g:HiMtchBrkt_ut")
-   	let &ut= g:HiMtchBrkt_ut
+  
+   " Install HiMtchBrkt maps
+   if has("gui_running")
+    call s:HMBMapper("<down>"    , "<down>"    , "<down>")
+    call s:HMBMapper("<up>"      , "<up>"      , "<up>")
+    call s:HMBMapper("<right>"   , "<right>"   , "<right>")
+    call s:HMBMapper("<left>"    , "<left>"    , "<left>")
+    call s:HMBMapper("<home>"    , "<home>"    , "<home>")
+    call s:HMBMapper("<end>"     , "<end>"     , "<end>")
+    call s:HMBMapper("<space>"   , "<space>"   , "")
+    call s:HMBMapper("<PageUp>"  , "<PageUp>"  , "<PageUp>")
+    call s:HMBMapper("<PageDown>", "<PageDown>", "<PageDown>")
    else
-   	" I'd like to set ut even faster, but unfortunately that clears
-	" status-line messages before people have a chance to read them
-    set ut=2000
+    call s:HMBMapper("<down>"    , "j"    , "<c-o>j"    )
+    call s:HMBMapper("<up>"      , "k"    , "<c-o>k"    )
+    call s:HMBMapper("<right>"   , "l"    , "<c-o>l"    )
+    call s:HMBMapper("<left>"    , "h"    , "<c-o>h"    )
+    call s:HMBMapper("<home>"    , "0"    , "<c-o>0"    )
+    call s:HMBMapper("<end>"     , "$"    , "<c-o>$"    )
+    call s:HMBMapper("<space>"   , "l"    , ""          )
+    call s:HMBMapper("<PageUp>"  , "<c-b>", "<c-o><c-b>")
+    call s:HMBMapper("<PageDown>", "<c-f>", "<c-o><c-f>")
    endif
-   augroup HMBEvent
-    au!
-    au CursorHold * if getline(line(".")) != "" | silent call s:HiMatchBracket() | endif
-   augroup END
+   if has("gui_running") && has ("mouse")
+    call s:HMBMapper("<leftmouse>","<leftmouse>","<leftmouse>")
+   endif
+   if v:version > 602 || v:version == 602 && has("patch405")
+    call s:HMBMapper('0'    , '0'    , '')
+   endif
+   call s:HMBMapper('b'    , 'b'    , '')
+   call s:HMBMapper('B'    , 'B'    , '')
+   call s:HMBMapper('e'    , 'e'    , '')
+   call s:HMBMapper('E'    , 'E'    , '')
+   call s:HMBMapper('h'    , 'h'    , '')
+   call s:HMBMapper('j'    , 'j'    , '')
+   call s:HMBMapper('k'    , 'k'    , '')
+   call s:HMBMapper('l'    , 'l'    , '')
+   call s:HMBMapper('n'    , 'n'    , '')
+   call s:HMBMapper('N'    , 'N'    , '')
+   call s:HMBMapper('$'    , '$'    , '')
+   call s:HMBMapper('%'    , '%'    , '')
+   call s:HMBMapper('w'    , 'w'    , '')
+   call s:HMBMapper('W'    , 'W'    , '')
+   call s:HMBMapper("<c-f>", "<c-f>", "")
+   call s:HMBMapper("<c-b>", "<c-b>", "")
+   call s:HMBMapper("<c-d>", "<c-d>", "")
+   call s:HMBMapper("<c-u>", "<c-u>", "")
+   call s:HMBMapper('f('   , 'f('   , '')
+   call s:HMBMapper('f)'   , 'f)'   , '')
+   call s:HMBMapper('f{'   , 'f{'   , '')
+   call s:HMBMapper('f}'   , 'f}'   , '')
+   call s:HMBMapper('f['   , 'f['   , '')
+   call s:HMBMapper('f]'   , 'f]'   , '')
+   call s:HMBMapper('F('   , 'F('   , '')
+   call s:HMBMapper('F)'   , 'F)'   , '')
+   call s:HMBMapper('F{'   , 'F{'   , '')
+   call s:HMBMapper('F}'   , 'F}'   , '')
+   call s:HMBMapper('F['   , 'F['   , '')
+   call s:HMBMapper('F]'   , 'F]'   , '')
+   if exists("mapleader")
+    if mapleader != ';'
+    	call s:HMBMapper(';',';','')
+    endif
+    if mapleader != ','
+    	call s:HMBMapper(',',',','')
+    endif
+   else
+    	call s:HMBMapper(';',';','')
+    	call s:HMBMapper(',',',','')
+   endif
+ 
+   " use CursorHold event to do a belated highlighing of matching bracket
+   " to handle motions not directly handled above
+   if !exists("g:HiMtchBrkt_nocursorhold") && (!exists("g:HiMtchBrkt_ut") || g:HiMtchBrkt_ut != 0)
+    " keep and set options
+    let g:HiMtchBrkt_utkeep= &ut
+    if exists("g:HiMtchBrkt_ut")
+    	let &ut= g:HiMtchBrkt_ut
+    else
+    	" I'd like to set ut even faster, but unfortunately that clears
+     " status-line messages before people have a chance to read them
+     set ut=2000
+    endif
+    augroup HMBEvent
+     au!
+     au CursorHold * if getline(line(".")) != "" | silent call s:HiMatchBracket() | endif
+    augroup END
+   endif
   endif
  
   " Insert stop  HiMtchBrkt into menu
   " Delete start HiMtchBrkt from menu
   if has("gui_running") && has("menu")
-   exe 'unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Start'
    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Stop<tab><Leader>[s	<Leader>[s'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Start'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On'
+   if exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off<tab>:HMBsurround!	:HMBsurround!'."\<cr>"
+   else
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On<tab>:HMBsurround	:HMBsurround'."\<cr>"
+   endif
   endif
  
 "  call Dret("HMBStart")
@@ -243,14 +257,23 @@ fun! <SID>HMBStop()
   endif
  
   " restore user map(s), if any
-  call RestoreUserMaps("HiMtchBrkt")
+  if v:version < 700
+   call RestoreUserMaps("HiMtchBrkt")
+  endif
   let &ww= s:wwkeep
  
   " Insert start HiMtchBrkt into menu
   " Delete stop  HiMtchBrkt from menu
   if has("gui_running") && has("menu")
-   exe 'unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Stop'
    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Start<tab><Leader>[s	<Leader>[i'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Stop'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On'
+   if exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off<tab>:HMBsurround!	:HMBsurround!'."\<cr>"
+   else
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On<tab>:HMBsurround	:HMBsurround'."\<cr>"
+   endif
   endif
 "  call Dret("HMBStop")
 endfun
@@ -340,6 +363,33 @@ fun! <SID>HiMatchBracket()
   silent! let @* = regpaste
 
 "  call Dret("HiMatchBracket")
+endfun
+
+" ---------------------------------------------------------------------
+" HMBSurround: turns on HiMtchBrkt surround mode (brackets containing
+" current cursor are highlighted).  If HiMtchBrkt is not enabled, then
+" enabling with HMBsurround will also start HiMtchBrkt.  It doesn't
+" stop HiMtchBrkt mode, though.  Instead, HiMtchBrkt will go to matching
+" bracket highlighting mode.
+fun! s:HMBSurround(mode)
+"  call Dfunc("HMBsurround()")
+  let g:HiMtchBrkt_surround= a:mode
+  if g:HiMtchBrkt_surround
+   if !exists("g:dohimtchbrkt")
+    call s:HMBStart()
+   endif
+  endif
+  call s:HiMatchBracket()
+  if has("menu") && has("gui_running") && &go =~ 'm'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off'
+   exe 'silent! unmenu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On'
+   if g:HiMtchBrkt_surround
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ Off<tab>:HMBsurround!	:HMBsurround!'."\<cr>"
+   else
+    exe 'menu '.g:DrChipTopLvlMenu.'HiMtchBrkt.Surround\ On<tab>:HMBsurround	:HMBsurround'."\<cr>"
+   endif
+  endif
+"  call Dret("HMBsurround")
 endfun
 
 " ---------------------------------------------------------------------

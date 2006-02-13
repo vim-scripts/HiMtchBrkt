@@ -1,4 +1,4 @@
-*himtchbrkt.txt*	The HiMtchBrkt Tool		Feb 09, 2006
+*himtchbrkt.txt*	The HiMtchBrkt Tool		Feb 13, 2006
 
 Author:  Charles E. Campbell, Jr.  <NdrOchip@ScampbellPfamily.AbizM>
 	  (remove NOSPAM from Campbell's email first)
@@ -67,7 +67,7 @@ Copyright: (c) 2004-2006 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
  || :HMBstart     | start HiMtchBrkt   (via a command)                        ||
  || :HMBstop      | stop  HiMtchBrkt   (via a command)                        ||
  || :HMBsurround  | enable HiMtchBrkt surrounding bracket mode                ||
- || :HMBsurround! | disable HiMtchBrkt surrounding bracket mode               ||
+ || :HMBsurround! | enable HiMtchBrkt matching-bracket mode                   ||
  ++===============+===========================================================++
 
  You may also choose from the DrChip.HiMtchBrkt menu items if you're running
@@ -81,18 +81,24 @@ Copyright: (c) 2004-2006 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
     See |himtchbrkt-start| and |himtchbrkt-stop| for how to start and
     stop HiMtchBrkt.
 
-    The HiMtchBrkt plugin attempts to highlight the matching bracket
+    The HiMtchBrkt plugin highlights the matching bracket or the surrounding
+    brackets
 
    	e.g. (){}[]  (actually the |'matchpairs'| option is used)
 
-    when the cursor is moved on top of the bracket.  It does so by
-    making a fair number of maps that intercept the requested motion,
-    perform the requested motion, then also call the HiMatchBracket()
-    function which does the work to highlight any matching bracket.
-    Basically it does a "%" to find the matching bracket (if any)
-    and then constructs and executes an appropriate ":match" command.
+    when the cursor is moved on top of the bracket.
 
-    As of version 10, such overloaded motions include:
+    For version 7.0 of vim (you'll need snapshot#195 or later), HiMtchBrkt
+    uses the CursorMoved and CursorMovedI events to trigger the highlightinhg
+    of matching/surrounding brackets.
+
+    For version 6.0 of vim it does so by making a fair number of maps that
+    intercept the requested motion, perform the requested motion, then also
+    call the HiMatchBracket() function which does the work to highlight any
+    matching bracket.  Basically it does a "%" to find the matching bracket
+    (if any) and then constructs and executes an appropriate ":match" command.
+
+    As of version 10 of HiMtchBrkt, such overloaded motions include:
 
     	,  E   F)  k      <down>         
     	;  f(  F[  l      <end>          
@@ -103,17 +109,18 @@ Copyright: (c) 2004-2006 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
     	B  f}  j   <c-u>  <up>           
     	e  F(              
 
-    Version 12 supports overloading of 0, too (if you have vim6.2
-    and patch 405 or later).
+    Version 12 of HiMtchBrkt supports overloading of 0, too (if you have
+    vim6.2 and patch 405 or later).
 
-    Because vim is rich with commands that can move the cursor, the
-    script also uses the CursorHold event (see |cursorhold| and
-    |'updatetime'|) to highlight matching brackets after the cursor
-    is left still for awhile.
+    (for vim version 6.0) Because vim is rich with commands that can move the
+    cursor, the script also uses the CursorHold event (see |cursorhold| and
+    |'updatetime'|) to highlight matching brackets after the cursor is left
+    still for awhile.
 
 STARTING						*himtchbrkt-start*
     <Leader>[i
     :HMBstart
+    :HMBsurround
     let g:HiMtchBrktOn= 1   (in your .vimrc or vimfiles)
 
     Typically one puts <himtchbrkt.vim> into the .vim/plugin directory
@@ -204,6 +211,10 @@ HIGHLIGHTING MATCHING BRACKET OPTIONS			*himtchbrkt-option*
 5. HiMtchBrkt History					*himtchbrkt-history*
 
     (began this history rather late I'm afraid)
+    v21  02/10/06: * :HMBsurround will start HiMtchBrkt mode if it needs to.
+                   * Menus are adjusted to show Surround On/Off choices
+	 02/13/06  * HiMtchBrkt now takes advantage of the new CursorMoved
+		     and CursorMovedI events
     v20  01/19/06: * HMBMapper() now made script-local (s:HMBMapper())
          01/20/06  * g:HiMtchBrktOn == 1 will auto-start HiMtchBrkt
 	 01/20/06  * g:HiMtchBrktOn variable for auto-startup installed
