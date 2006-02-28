@@ -1,4 +1,4 @@
-*himtchbrkt.txt*	The HiMtchBrkt Tool		Feb 13, 2006
+*himtchbrkt.txt*	The HiMtchBrkt Tool		Feb 21, 2006
 
 Author:  Charles E. Campbell, Jr.  <NdrOchip@ScampbellPfamily.AbizM>
 	  (remove NOSPAM from Campbell's email first)
@@ -117,7 +117,7 @@ Copyright: (c) 2004-2006 by Charles E. Campbell, Jr.	*himtchbrkt-copyright*
     |'updatetime'|) to highlight matching brackets after the cursor is left
     still for awhile.
 
-STARTING						*himtchbrkt-start*
+STARTING					*himtchbrkt-start* *HMBstart*
     <Leader>[i
     :HMBstart
     :HMBsurround
@@ -161,7 +161,7 @@ OPTIONS							*himtchbrkt-options*
     	Unfortunately, when a CursorHold event occurs, any command-line
 	messages disappear.
 
-    g:HiMtchBrkt_surround			*himtchbrkt-surround*
+    g:HiMtchBrkt_surround		*himtchbrkt-surround* *HMBsurround*
 	When this variable exists and is true (ie. non-zero), then
 	HiMtchBrkt will highlight both brackets surrounding the cursor
 	position.  This variable is turned on and off by :HMBsurround
@@ -176,7 +176,7 @@ OPTIONS							*himtchbrkt-options*
 	is that messages disappear when the CursorEvent takes effect.
 
 
-STOPPING						*himtchbrkt-stopping*
+STOPPING					*himtchbrkt-stopping* *HMBstop*
     <Leader>[s
 
     When you are done with HiMtchBrkt, use
@@ -211,6 +211,16 @@ HIGHLIGHTING MATCHING BRACKET OPTIONS			*himtchbrkt-option*
 5. HiMtchBrkt History					*himtchbrkt-history*
 
     (began this history rather late I'm afraid)
+    v22  02/13/06: * bugfix: :HMBstop now also removes the CursorMove events
+         02/15/06  * bugfix: CursorMovedI event prevented inserting normal
+	             characters from proceeding properly.  Currently its been
+	             removed.
+	 02/21/06  * HiMtchBrkt now uses searchpairpos() to speed up
+	             determination of matching/surrounding brackets; this
+		     is used for version 7 (or later) of vim only.
+         02/28/06  * uses line("w0") and line("w$") and the new stopline
+	             parameter for searchpair*() to speed up setting up
+		     the match (vim v7 only)
     v21  02/10/06: * :HMBsurround will start HiMtchBrkt mode if it needs to.
                    * Menus are adjusted to show Surround On/Off choices
 	 02/13/06  * HiMtchBrkt now takes advantage of the new CursorMoved

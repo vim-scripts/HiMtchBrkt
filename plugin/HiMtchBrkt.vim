@@ -1,10 +1,10 @@
 " HiMtchBrkt : highlights matching brackets and, optionally, containing
 "              brackets
 "  Author:  Charles E. Campbell, Jr.  <drNchipO@ScampbellPfamilyA.Mbiz>-NOSPAM
-"  Date:    Feb 13, 2006
-"  Version: 21
+"  Date:    Feb 28, 2006
+"  Version: 22
 "
-" A Vim v6.0 plugin with menus for gvim
+" A Vim v6.0/7.0 plugin with menus for gvim
 "
 " Usage: {{{1
 "   \[i : initialize highlighting of matching bracket
@@ -21,11 +21,14 @@
 if &cp || exists("g:loaded_HiMtchBrkt")
  finish
 endif
-let g:loaded_HiMtchBrkt = "v21"
+let g:loaded_HiMtchBrkt = "v22"
 let s:keepcpo           = &cpo
 set cpo&vim
 if exists("g:hicurline_ut") && !exists("g:HiMtchBrkt_ut")
  let g:HiMtchBrkt_ut= g:hicurline_ut
+endif
+if v:version >= 700 && exists("##CursorMoved")
+ let g:loaded_matchparen= 1
 endif
 
 " ---------------------------------------------------------------------
@@ -36,8 +39,8 @@ endif
 if !hasmapto('<Plug>HMBStop')
  map <unique> <Leader>[s	<Plug>HMBStop
 endif
-com! HMBstart    :set lz|call s:HMBStart()|set nolz
-com! HMBstop     :set lz|call s:HMBStop()|set nolz
+com! -bang HMBstart    :set lz|call s:HMBStart(<bang>0)|set nolz
+com! -bang HMBstop     :set lz|call s:HMBStop(<bang>0)|set nolz
 com! -bang HMBsurround :set lz|call s:HMBSurround(<bang>1)|set nolz
 
 " ---------------------------------------------------------------------
@@ -57,16 +60,16 @@ endif
 
 " =====================================================================
 " HMBStart: {{{1
-fun! <SID>HMBStart()
-"  call Dfunc("HMBStart()")
+fun! <SID>HMBStart(mode)
+"  call Dfunc("HMBStart(mode=".a:mode.")")
 
   " set whichwrap
-  let s:wwkeep= &ww
+  let s:wwkeep    = &ww
   set ww=b,s,<,>,[,]
 
   if exists("g:dohimtchbrkt") && g:dohimtchbrkt == 1
    " already in HiMtchBrkt mode
-   if &cmdheight >= 2
+   if &cmdheight >= 2 && a:mode == 0
     echo "[HiMtchBrkt]"
    endif
 "   call Dret("HMBStart : already in HiMtchBrkt mode")
@@ -75,13 +78,16 @@ fun! <SID>HMBStart()
   let g:dohimtchbrkt= 1
  
   " indicate in HiMtchBrkt mode
-  if &cmdheight >= 2
+  if &cmdheight >= 2 && a:mode == 0
    echo "[HiMtchBrkt]"
   endif
  
-  if v:version >= 700
+  if v:version >= 700 && exists("##CursorMoved")
    " assuming snapshot#195 or later
-   au CursorMoved,CursorMovedI * silent call s:HiMatchBracket()
+   augroup HMBEvent
+   	au!
+    au CursorMoved * silent call s:HiMatchBracket()
+   augroup END
   else
    " Save Maps (if any)
    call SaveUserMaps("n","",":F(","HiMtchBrkt")
@@ -233,10 +239,10 @@ endfun
 " ---------------------------------------------------------------------
 " HMBStop: turn  HiMtchBrkt mode off: restore motion key maps to prior {{{1
 " settings (if any), restore visual beeps, restore CursorHold update timer.
-fun! <SID>HMBStop()
-"  call Dfunc("HMBStop()")
+fun! <SID>HMBStop(mode)
+"  call Dfunc("HMBStop(mode=".a:mode.")")
   if !exists("g:dohimtchbrkt")
-   if &cmdheight >= 2
+   if &cmdheight >= 2 && a:mode == 0
     echo "[HiMtchBrkt off]"
    endif
 "   call Dret("HMBStop")
@@ -246,7 +252,7 @@ fun! <SID>HMBStop()
   match none
  
   " remove cursorhold event for highlighting matching bracket
-  if !exists("g:HiMtchBrkt_nocursorhold")
+  if (v:version >= 700 && exists("##CursorMoved")) || !exists("g:HiMtchBrkt_nocursorhold")
    augroup HMBEvent
     au!
    augroup END
@@ -285,7 +291,15 @@ fun! <SID>HiMatchBracket()
 "  call Dfunc("HiMatchBracket()")
 "  call Decho(((exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround)? "surround" : "normal")." mode")
 
+  if mode() =~ '['."\<c-v>".'vV]'
+   " don't try to highlight matching/surrounding brackets while in
+   " visual-block mode
+"   call Dret("HiMatchBracket")
+   return
+  endif
+
   " save
+  let magickeep        = &magic
   let regdq            = @"
   let regunnamed       = @@
   let sokeep           = &so
@@ -297,54 +311,80 @@ fun! <SID>HiMatchBracket()
   silent! let regpaste = @*
 
   " turn beep/visual flash off
-  set nosol vb t_vb= so=0 siso=0 ss=0
+  set nosol vb t_vb= so=0 siso=0 ss=0 magic
 
   " remove every other character from the mps option set
   let mps= substitute(&mps,'\(.\).','\1','g')
 
   " grab a copy of the character under the cursor into @0
   silent! norm! yl
-  let swp= SaveWinPosn(0)
 
   " if the character grabbed in @0 is in the mps option set, then highlight
   " the matching character
 "  call Decho("HiMatchBracket: stridx(mps<".mps.">,@0<".@0.">)=".stridx(mps,@0))
   if stridx(mps,@0) != -1
-   let curline  = line('.')
-   let curcol   = virtcol('.')
-   keepj norm! H
-   let hline    = line('.')
-   if hline != curline
-   	call RestoreWinPosn(swp)
+   if v:version >= 700 && exists("##CursorMoved")
+   	let curchr     = @0
+	" determine match line, column.
+	" Restrict search to currently visible portion of window.
+   	if &mps =~ curchr.':'
+	 let stopline           = line("w$")
+	 let chrmatch           = substitute(&mps,'^.*'.curchr.':\(.\).*$','\1','')
+	 let [mtchline,mtchcol] = searchpairpos(escape(curchr,'[]'),'',escape(chrmatch,'[]'),'n','',stopline)
+	else
+	 let stopline           = line("w0")
+	 let chrmatch           = substitute(&mps,'^.*\(.\):'.curchr.'.*$','\1','')
+	 let [mtchline,mtchcol] = searchpairpos(escape(chrmatch,'[]'),'',escape(curchr,'[]'),'bn','',stopline)
+	endif
+"    call Decho("curchr<".curchr."> chrmatch<".chrmatch.">  searchpairpos[".mtchline.','.mtchcol.'] stopline='.stopline)
+	if mtchline != 0 && mtchcol != 0
+"     call Decho('exe match Search /\%'.mtchline.'l\%'.mtchcol.'c/')
+	 exe 'match Search /\%'.mtchline.'l\%'.mtchcol.'c/'
+    else
+	 match none
+    endif
+   else
+    let swp     = SaveWinPosn(0)
+    let curline = line('.')
+    let curcol  = virtcol('.')
+	keepj norm! H
+	let hline    = line('.')
+	if hline != curline
+		call RestoreWinPosn(swp)
+	endif
+	keepj norm! %
+	let mtchline = line('.')
+	let mtchcol  = virtcol('.')
+	call RestoreWinPosn(swp)
+"    call Decho('exe match Search /\%'.mtchline.'l\%'.mtchcol.'v/')
+	exe 'match Search /\%'.mtchline.'l\%'.mtchcol.'v/'
    endif
-   keepj norm! %
-   let mtchline = line('.')
-   let mtchcol  = virtcol('.')
-   call RestoreWinPosn(swp)
-   exe 'match Search /\%'.mtchline.'l\%'.mtchcol.'v/'
-"   call Decho('exe match Search /\%'.mtchline.'l\%'.mtchcol.'v/')
 
   " if g:HiMtchBrkt_surround exists and is true, then highlight the surrounding brackets
   elseif exists("g:HiMtchBrkt_surround") && g:HiMtchBrkt_surround
-   let openers = '['.escape(substitute(&mps,':.,\=',"","g"),']').']'
-   let closers = '['.escape(substitute(&mps,',\=.:',"","g"),']').']'
+   let swp        = SaveWinPosn(0)
+   let openers    = '['.escape(substitute(&mps,':.,\=',"","g"),']').']'
+   let closers    = '['.escape(substitute(&mps,',\=.:',"","g"),']').']'
 "   call Decho("openers".openers." closers".closers)
-   call searchpair(openers,"",closers)
+   if v:version >= 700 && exists("##CursorMoved")
+    call searchpair(openers,"",closers,'','',line("w$"))
+   else
+    call searchpair(openers,"",closers)
+   endif
 
-"   keepj norm! %
    silent! norm! yl
 "   call Decho("surround: stridx(mps<".mps.">,@0<".@0.">)=".stridx(mps,@0))
    if stridx(mps,@0) != -1
-    let mtchline1 = line('.')
-    let mtchcol1  = virtcol('.')
-    keepj norm! %
-    let mtchline2 = line('.')
-    let mtchcol2  = virtcol('.')
-    call RestoreWinPosn(swp)
-    exe 'match Search /\%'.mtchline1.'l\%'.mtchcol1.'v\|\%'.mtchline2.'l\%'.mtchcol2.'v/'
+	let mtchline1 = line('.')
+	let mtchcol1  = virtcol('.')
+	keepj norm! %
+	let mtchline2 = line('.')
+	let mtchcol2  = virtcol('.')
+	call RestoreWinPosn(swp)
+	exe 'match Search /\%'.mtchline1.'l\%'.mtchcol1.'v\|\%'.mtchline2.'l\%'.mtchcol2.'v/'
 "    call Decho('match Search /\%'.mtchline1.'l\%'.mtchcol1.'v\|\%'.mtchline2.'l\%'.mtchcol2.'v/')
    else
-    match none
+	match none
    endif
 
   else
@@ -352,6 +392,7 @@ fun! <SID>HiMatchBracket()
   endif
  
   " restore
+  let &magic     = magickeep
   let @"         = regdq
   let @@         = regunnamed
   let &sol       = solkeep
@@ -376,7 +417,7 @@ fun! s:HMBSurround(mode)
   let g:HiMtchBrkt_surround= a:mode
   if g:HiMtchBrkt_surround
    if !exists("g:dohimtchbrkt")
-    call s:HMBStart()
+    call s:HMBStart(0)
    endif
   endif
   call s:HiMatchBracket()
